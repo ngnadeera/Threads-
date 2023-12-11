@@ -3,7 +3,7 @@ import { Form } from "@/components/ui/form"
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { userValidation } from "@/lib/validations/user";
-
+import {useUploadThing} from "@/lib/uploadthing"
 import { Button } from "@/components/ui/button"
 import {
   FormControl,
@@ -18,6 +18,7 @@ import * as z from "zod"
 import Image from "next/image";
 import { ChangeEvent, useState } from "react";
 import { Textarea } from "../ui/textarea";
+import { isBase64Image } from "@/lib/utils";
 
 interface Props {
     user : {
@@ -35,7 +36,7 @@ interface Props {
 const AccountProfile = ({ user, btnTitle} : Props) =>   {
 
    const [files, setFiles] = useState<File[]>([]);
-
+   const { startUpload } = useUploadThing("media");
     const form = useForm({
         resolver: zodResolver(userValidation),
         defaultValues: {
@@ -50,7 +51,7 @@ const AccountProfile = ({ user, btnTitle} : Props) =>   {
         e.preventDefault();
         const filereader = new FileReader();
 
-        if (e.target.files && e.target.files.length > 1){
+        if (e.target.files && e.target.files.length > 0){
           const file = e.target.files[0];
 
           setFiles(Array.from(e.target.files));
@@ -61,13 +62,28 @@ const AccountProfile = ({ user, btnTitle} : Props) =>   {
             const imageDataUrl = event.target?.result?.toString() || '';
             fiedlChange(imageDataUrl);
           }
+
+          filereader.readAsDataURL(file)
         }
     }
 
     
 
-    function onSubmit(values: z.infer<typeof userValidation>) {
-        console.log(values)
+const onSubmit = async(values: z.infer<typeof userValidation>) =>  {
+        const blob = values.profile_photo;
+        const hasImageChange = isBase64Image(blob);
+
+        if(hasImageChange) {
+          const imgRes = await startUpload(files)
+   
+
+        if (imgRes && imgRes[0].fileUrl)  {
+          values.profile_photo = imgRes[0].fileUrl;
+        }
+
+      }
+//ToDO: update the profile
+
       }
 
     
